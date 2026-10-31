@@ -47,8 +47,13 @@ def main() -> None:
     setup_logging(cfg)
     if args.console:
         asyncio.run(console(cfg))
-    else:
-        raise SystemExit("Telegram mode arrives in Task 6; use --console for now.")
+        return
+    from torro.telegram_bot import TelegramFront
+
+    front = TelegramFront(cfg)
+    ledger = CostLedger(cfg.data_dir / "costs.db", cfg.daily_budget_inr, cfg.usd_to_inr)
+    front.attach(Brain(cfg, ledger, front.approve, front.notify))
+    front.run()
 
 
 if __name__ == "__main__":
