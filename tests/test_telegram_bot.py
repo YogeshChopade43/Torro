@@ -1,4 +1,4 @@
-from torro.telegram_bot import is_owner, split_message
+from torro.telegram_bot import is_owner, is_stop_command, split_message
 
 
 def test_split_respects_limit_and_keeps_text():
@@ -14,3 +14,8 @@ def test_short_message_single_part():
 
 def test_only_owner():
     assert is_owner(42, 42) and not is_owner(7, 42) and not is_owner(None, 42)
+
+
+def test_stop_phrase_variants():
+    assert is_stop_command("Torro, stop everything!") and is_stop_command("STOP EVERYTHING")
+    assert not is_stop_command("don't stop")

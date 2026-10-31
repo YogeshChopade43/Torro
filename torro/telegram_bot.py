@@ -28,6 +28,10 @@ def split_message(text: str, limit: int = LIMIT) -> list[str]:
     return parts
 
 
+def is_stop_command(text: str) -> bool:
+    return "stop everything" in text.lower()
+
+
 def is_owner(user_id: int | None, owner_id: int) -> bool:
     return user_id is not None and user_id == owner_id
 
@@ -95,7 +99,7 @@ class TelegramFront:
         if not self._owner(update):
             return
         text = update.message.text
-        if text.strip().lower() == "stop everything":
+        if is_stop_command(text):
             await self._on_stop(update, ctx)
             return
         typing = asyncio.create_task(self._keep_typing(update.effective_chat.id))

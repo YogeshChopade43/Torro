@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import date
@@ -77,19 +78,33 @@ class Brain:
 
     async def chat(self, text: str) -> str:
         async with self._lock:
-            await self._client.query(text)
-            texts, result = [], None
-            async for msg in self._client.receive_response():
-                if isinstance(msg, AssistantMessage):
-                    texts += [b.text for b in msg.content if isinstance(b, TextBlock)]
-                elif isinstance(msg, ResultMessage):
-                    result = msg.result
-                    # total_cost_usd is cumulative for the client session.
-                    total = msg.total_cost_usd or 0.0
-                    self.ledger.add(max(0.0, total - self._chat_cost_seen))
-                    self._chat_cost_seen = total
+            try:
+                await self._client.query(text)
+                texts, result = [], None
+                async for msg in self._client.receive_response():
+                    if isinstance(msg, AssistantMessage):
+                        texts += [b.text for b in msg.content if isinstance(b, TextBlock)]
+                    elif isinstance(msg, ResultMessage):
+                        result = msg.result
+                        # total_cost_usd is cumulative for the client session.
+                        total = msg.total_cost_usd or 0.0
+                        self.ledger.add(max(0.0, total - self._chat_cost_seen))
+                        self._chat_cost_seen = total
+            except Exception:
+                await self._reconnect()  # so the next message works again
+                raise
         await self._check_budget()
         return result or "\n".join(texts)
+
+    async def _reconnect(self) -> None:
+        log.warning("chat session failed; reconnecting")
+        with contextlib.suppress(Exception):
+            await self._client.disconnect()
+        self._client, self._chat_cost_seen = None, 0.0
+        try:
+            await self.start()
+        except Exception:
+            log.exception("reconnect failed; will retry on next message")
 
     async def start_task(self, description: str) -> str:
         if self.ledger.status() == "over":

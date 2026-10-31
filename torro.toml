@@ -11,5 +11,8 @@ usd_to_inr = 88.0                  # update by hand when the rate moves
 
 approval_timeout_s = 300           # unanswered approval = denied
 
-# Shell commands TORRO may run without asking (matched on leading words).
-shell_allowlist = ["ls", "dir", "cat", "type", "echo", "pwd", "mkdir", "git status", "git log", "git diff"]
+# Shell commands TORRO may run without asking (matched on leading words; every
+# argument must also be inside the workspace). Never add commands that can run
+# code or read config (git, python, npm...) — TORRO can write files in its workspace.
+# File reading/listing doesn't need the shell: TORRO's Read/Glob tools are free in the workspace.
+shell_allowlist = ["pwd", "echo"]

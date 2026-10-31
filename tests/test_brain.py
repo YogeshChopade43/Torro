@@ -47,3 +47,24 @@ def test_stop_cancels_tasks(tmp_path, monkeypatch):
         return await b.stop_everything()
 
     assert asyncio.run(go()) == 2
+
+
+def test_chat_failure_reconnects(tmp_path, monkeypatch):
+    b = Brain(cfg_for(tmp_path), CostLedger(tmp_path / "c.db", 100, 100.0), yes, collect)
+
+    class DeadClient:
+        async def query(self, _): raise RuntimeError("CLI died")
+        async def disconnect(self): pass
+
+    starts = []
+    async def fake_start(): starts.append(1)
+    b._client, b._chat_cost_seen = DeadClient(), 5.0
+    monkeypatch.setattr(b, "start", fake_start)
+
+    async def go():
+        try:
+            await b.chat("hi")
+        except RuntimeError:
+            pass
+    asyncio.run(go())
+    assert starts == [1] and b._chat_cost_seen == 0

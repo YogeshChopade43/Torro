@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+# Only commands that cannot read, write or execute anything by themselves.
+DEFAULT_SHELL_ALLOWLIST = ("pwd", "echo")
 SECRETS = ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_OWNER_ID")
 
 
@@ -61,7 +63,5 @@ def load_config(toml_path: Path = REPO_ROOT / "torro.toml", env: Mapping[str, st
         daily_budget_inr=float(s.get("daily_budget_inr", 100)),
         usd_to_inr=float(s.get("usd_to_inr", 88.0)),
         approval_timeout_s=int(s.get("approval_timeout_s", 300)),
-        shell_allowlist=tuple(s.get("shell_allowlist", (
-            "ls", "dir", "cat", "type", "echo", "pwd", "mkdir", "git status", "git log", "git diff",
-        ))),
+        shell_allowlist=tuple(s.get("shell_allowlist", DEFAULT_SHELL_ALLOWLIST)),
     )
