@@ -1,8 +1,9 @@
+import asyncio
 from pathlib import Path
 
 import pytest
 
-from torro.policy import classify
+from torro.policy import classify, make_pre_tool_hook
 
 WS = Path("D:/ws")
 AL = ["ls", "git status"]
@@ -38,3 +39,38 @@ def test_torro_and_web_tools_allowed():
 
 def test_unknown_tool_asks():
     assert classify("SomeNewTool", {}, WS, AL).verdict == "ask"
+
+
+def run(hook, name, inp):
+    return asyncio.run(hook({"tool_name": name, "tool_input": inp, "hook_event_name": "PreToolUse"}, "id1", {}))
+
+
+def denied(out):
+    return out.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
+
+
+def test_ask_approved():
+    async def yes(_): return True
+    assert not denied(run(make_pre_tool_hook(WS, AL, yes, 1), "Bash", {"command": "python x.py"}))
+
+
+def test_ask_declined():
+    async def no(_): return False
+    assert denied(run(make_pre_tool_hook(WS, AL, no, 1), "Bash", {"command": "python x.py"}))
+
+
+def test_ask_timeout_denies():
+    async def never(_):
+        await asyncio.sleep(10)
+        return True
+    out = run(make_pre_tool_hook(WS, AL, never, 0.05), "Bash", {"command": "python x.py"})
+    assert denied(out) and "No answer" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def test_deny_never_asks():
+    asked = []
+    async def spy(p):
+        asked.append(p)
+        return True
+    assert denied(run(make_pre_tool_hook(WS, AL, spy, 1), "Read", {"file_path": "C:/Windows/x"}))
+    assert asked == []
