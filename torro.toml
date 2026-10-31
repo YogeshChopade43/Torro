@@ -1,0 +1,15 @@
+# TORRO settings (no secrets here — those go in .env)
+
+# TORRO's sandbox. Must be OUTSIDE this repo.
+workspace = "D:/Tech/Torro/workspace"
+
+chat_model = "claude-sonnet-5-5"   # everyday conversation
+task_model = "claude-opus-5-5"     # background tasks
+
+daily_budget_inr = 100
+usd_to_inr = 88.0                  # update by hand when the rate moves
+
+approval_timeout_s = 300           # unanswered approval = denied
+
+# Shell commands TORRO may run without asking (matched on leading words).
+shell_allowlist = ["ls", "dir", "cat", "type", "echo", "pwd", "mkdir", "git status", "git log", "git diff"]
